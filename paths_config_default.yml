@@ -1,0 +1,13 @@
+# Path to directory where all the models are
+model_basedir: [..]
+
+# Path to base data directory
+data_basedir: [..]
+# Directory name with labels within base data directory
+labels_dirname: [..]
+
+# Path to directory with casename files
+casefiles_basedir: [..]
+
+# Path to base output directory for reconstructions
+output_basedir: [..]

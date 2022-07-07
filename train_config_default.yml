@@ -1,0 +1,43 @@
+# Split in training/validation happens internally.
+train_casefile: train_cases.txt
+
+# If None, nothing is written to filesystem during training (useful for debugging).
+model_name: None
+
+# 0 -- AutoDecoder (AD), 1 -- ReconNet (RN)
+task_type: 0
+# For RN: crop size for training. If 0, disabled.
+crop_size: 128
+# For AD/RN: fraction of training data used for validation
+val_fraction: 0.15
+# For AD/RN: thin out volumes by keeping every x slice. Should be at least 2.
+slice_step_size: 8
+# For AD/RN: axis for volume thinning in LPS coordinate system: sagittal, coronal, axial.
+slice_step_axis: 0
+# For AD/RN: whether to use averaged thick slices instead of exact thin slices.
+use_thick_slices: False
+# For AD task: latent dimension
+latent_dim: 128
+# For AD: number of layers in OccupancyPredictor
+op_num_layers: 8
+# For AD: layers with coordinates in OccupancyPredictor
+op_coord_layers: [0, 4]
+
+batch_size_train: 8
+batch_size_val: 1
+# For AD: number of points per example per dim for training. If -1, use the whole volume.
+num_points_per_example_per_dim_train: 64
+# For AD: latent regularization weight. If 0, disabled.
+lat_reg_lambda: 1.0e-4
+# Scaled with batch size
+learning_rate: 1.0e-4
+# For AD: not scaled with batch size; only used for training.
+learning_rate_lat: 1.0e-3
+num_epochs: 40000
+# Log to tensorboard every x epochs (train and val)
+log_epoch_count: 2
+# Store model checkpoint every x epochs
+checkpoint_epoch_count: 50
+max_num_checkpoints: 5
+
+num_workers: 2

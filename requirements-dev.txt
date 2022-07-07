@@ -1,0 +1,7 @@
+jupyterlab
+pytest~=7.1.1
+mypy
+flake8
+flake8-bugbear
+flake8-comprehensions
+pydocstyle

@@ -1,0 +1,14 @@
+test_casefile: test_cases.txt
+
+evaluate_predictions: True
+export_predictions: True
+allow_overwriting: False
+# For RN, patch size for tiled inference
+rn_patch_size: [128, 128, 128]
+
+# For AD, whether to perform inference from three orthogonal slices instead of thick/thin slices
+sample_orthogonal_slices: False
+# For AD/RN: thin out volumes by keeping every x slice. Should be at least 2.
+slice_step_size: 8
+# For AD/RN: axis for volume thinning in LPS coordinate system: sagittal, coronal, axial.
+slice_step_axis: 0

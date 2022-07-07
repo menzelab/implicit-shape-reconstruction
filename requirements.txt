@@ -1,0 +1,6 @@
+numpy~=1.22.0
+nibabel~=3.2.1
+scipy~=1.8.0
+pyyaml~=6.0
+tensorboard~=2.8.0
+torch==1.11.0+cu113

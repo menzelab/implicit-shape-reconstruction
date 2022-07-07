@@ -1,0 +1,7 @@
+model_name: thin_ad
+
+# 0 -- AutoDecoder (AD), 1 -- ReconNet (RN)
+task_type: 0
+use_thick_slices: False
+
+num_epochs: 1800
