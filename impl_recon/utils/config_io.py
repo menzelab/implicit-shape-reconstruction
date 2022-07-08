@@ -109,7 +109,7 @@ def parse_config_eval() -> Tuple[Dict, Path]:
     model_config_path = get_model_config_path(config, args.model_name, '*.yml')
     config.update(read_train_config(model_config_path, 'train_config_default.yml'))
     eval_config_path = Path(args.eval_config)
-    config.update(read_yaml_config(eval_config_path))
+    config.update(read_yaml_config(eval_config_path, 'eval_config_default.yml'))
 
     # The model name in the config file MUST coincide with the directory name!
     if config['model_name'] != args.model_name:
