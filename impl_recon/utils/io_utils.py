@@ -1,24 +1,11 @@
 import sys
-from dataclasses import dataclass
 from io import TextIOWrapper
 from pathlib import Path
-from typing import List, Optional, OrderedDict, Tuple
+from typing import List, OrderedDict, Tuple
 
 import nibabel as nib
 import numpy as np
 import torch
-
-from impl_recon.utils import geometry_utils
-
-
-@dataclass
-class ImageData:
-    """Volumetric image or label data corresponding to a single case."""
-    casename: str
-    image: torch.Tensor
-    # Affine transformation matrix that maps tensor indices (each within [0, shape - 1]) to
-    # positions of voxel's centers in global coordinates.
-    image_trafo: np.ndarray
 
 
 def save_nifti_file(image_data: np.ndarray, local_to_global: np.ndarray, target_filepath: Path):
@@ -27,7 +14,6 @@ def save_nifti_file(image_data: np.ndarray, local_to_global: np.ndarray, target_
     # Convert this library's LPS+ coordinate system to nibabel's RAS+ coordinates
     local_to_global_ras[0] *= -1
     local_to_global_ras[1] *= -1
-    # Create header in an Amira-compatible way
     header = nib.Nifti1Header()
     header.set_data_dtype(image_data.dtype)
     header.set_qform(local_to_global_ras, code='scanner')
@@ -51,64 +37,6 @@ def load_nifti_file(image_path: Path) -> Tuple[np.ndarray, np.ndarray]:
     ijk_to_lps[0] *= -1
     ijk_to_lps[1] *= -1
     return img_data, ijk_to_lps
-
-
-def load_nifti_files(source_dir: Path, file_pattern: str, casenames: Optional[List[str]] = None) \
-        -> Tuple[List[np.ndarray], List[np.ndarray]]:
-    """Load nifti files from a given directory that match a given pattern to a list of numpy arrays
-    with image data and a list of arrays with transformation matrices. If no casenames list is
-    given, load all available files. If casenames list is given, the pattern must contain '{}' for
-    the case name.
-    The affine transformation matrix maps tensor indices (each within [0, shape - 1]) to positions
-    of voxel's centers in global coordinates.
-    """
-    if casenames is None:
-        # Sort the filenames -- the exact algorithm doesn't matter, but the ordering must be
-        # consistent
-        nifti_files = sorted(source_dir.glob(file_pattern), key=lambda path: path.name)
-    else:
-        nifti_files = []
-        for casename in casenames:
-            curr_pattern = file_pattern.format(casename)
-            files = list(source_dir.glob(curr_pattern))
-            if len(files) != 1:
-                raise ValueError('Exactly one file must fit the pattern:\n{}'
-                                 .format(source_dir / curr_pattern))
-            nifti_files.append(files[0])
-
-    results = [load_nifti_file(nifti_file) for nifti_file in nifti_files]
-    return [x[0] for x in results], [x[1] for x in results]
-
-
-def load_image_data(images_dir: Path, casenames: List[str], target_device: torch.device,
-                    file_pattern: str = '{}*.nii*') -> List[ImageData]:
-    """
-    Load all image data into memory as float32.
-    :param images_dir: Directory with image files.
-    :param casenames: List of case names.
-    :param target_device: Target device for image and labels tensors.
-    :param file_pattern: File pattern that includes {} as placeholder for casename.
-    """
-    images, trafos = load_nifti_files(images_dir, file_pattern, casenames)
-
-    # Currently only transformation matrices with scaling & translation are supported
-    if not all([geometry_utils.is_matrix_scaling_and_transform(m) for m in trafos]):
-        example_trafos = [str(x) for x in trafos[:5]]
-        raise ValueError('Local to global image matrix is supposed to be 4x4, have scaling '
-                         'and translation components only, and positive scaling. Here are some '
-                         'examples:\n{}'.format('\n'.join(example_trafos)))
-
-    # Convert everything to float32 and/or tensors
-    images = [image.astype(np.float32) for image in images]
-    images_tensors = [torch.from_numpy(image).to(torch.float32).to(device=target_device)
-                      for image in images]
-    image_trafos = [trafo.astype(np.float32) for trafo in trafos]
-
-    images_data = [ImageData(casename, image, image_trafo)
-                   for casename, image, image_trafo
-                   in zip(casenames, images_tensors, image_trafos)]
-
-    return images_data
 
 
 def load_casenames(filepath: Path) -> List[str]:

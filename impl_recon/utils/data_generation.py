@@ -7,7 +7,6 @@ import numpy as np
 import torch
 from torch.nn import functional
 from torch.utils import data
-from torch.utils.data.dataset import T_co
 
 from impl_recon.utils import config_io, geometry_utils, image_utils, io_utils
 
@@ -72,17 +71,29 @@ def pad(label: torch.Tensor, target_shape: torch.Tensor) -> torch.Tensor:
 
 def load_volumes(volumes_dir: Path, casenames: List[str]) -> Tuple[List[torch.Tensor],
                                                                    List[torch.Tensor]]:
-    """Load axis-aligned volumes with same spacing."""
-    label_data = io_utils.load_image_data(volumes_dir, casenames, torch.device('cpu'))
-    labels = [x.image for x in label_data]
-    trafos = [x.image_trafo for x in label_data]
-    if any([not geometry_utils.is_matrix_scaling_and_transform(x) for x in trafos]):
-        raise ValueError('Currently only axis-aligned volumes are supported.')
-    spacings_np = [np.diagonal(tr)[:3].copy() for tr in trafos]
+    """Load axis-aligned volumes."""
+    volumes: list[np.ndarray] = []
+    spacings: list[np.ndarray] = []
+    for casename in casenames:
+        curr_pattern = f'{casename}*.nii*'
+        files = list(volumes_dir.glob(curr_pattern))
+        if len(files) != 1:
+            raise ValueError(f'Exactly one file must fit the pattern:\n'
+                             f'{volumes_dir / curr_pattern}')
+        volume, affine = io_utils.load_nifti_file(files[0])
+        # Currently only transformation matrices with scaling & translation are supported
+        if not geometry_utils.is_matrix_scaling_and_transform(affine):
+            raise ValueError('Local to global image matrix is supposed to be 4x4, have scaling '
+                             'and translation components only, and positive scaling. Instead got\n'
+                             f'{affine}')
+        spacing = np.diagonal(affine)[:3].copy()
+        volumes.append(volume)
+        spacings.append(spacing)
 
-    # Convert to spacings to tensors
-    spacings = [torch.from_numpy(x).to(torch.float32) for x in spacings_np]
-    return labels, spacings
+    # Convert everything to float32 and/or tensors
+    volumes_tnsr = [torch.from_numpy(x).to(torch.float32) for x in volumes]
+    spacings_tnsr = [torch.from_numpy(x).to(torch.float32) for x in spacings]
+    return volumes_tnsr, spacings_tnsr
 
 
 def compute_thick_slices(volume: torch.Tensor, axis: int, step_size: int) -> torch.Tensor:
@@ -303,7 +314,7 @@ class OrthogonalSlices(data.Dataset):
     def __len__(self):
         return len(self.casenames)
 
-    def __getitem__(self, item: int) -> T_co:
+    def __getitem__(self, item: int):
         label = self.labels[item]
 
         # Extract positions of orthogonal slices in [N, 1, 1, 3]
