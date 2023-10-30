@@ -43,6 +43,10 @@ The inference is also configured via two YAML files:
 
 Please refer to `eval_config_default.yml` and `paths_config_default.yml` for documentation of individual parameters. To start the reconstruction inference, run the `impl_recon/eval.py` file.
 
+### Train/validation plots
+
+You can find training/validation plots [here](training_plots.md).
+
 ### Third party code
 
 Parts of the code are used from other repositories:
